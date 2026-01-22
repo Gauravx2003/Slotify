@@ -9,10 +9,7 @@
     "module": "commonjs",
     "target": "ES2022",
     "moduleResolution": "node",
-    "types": [
-      "node",
-      "jest"
-    ],
+    "types": ["node"],
     // For nodejs:
     // "lib": ["esnext"],
     // "types": ["node"],
@@ -39,15 +36,8 @@
     // "noUncheckedSideEffectImports": true,
     // "moduleDetection": "force",
     "skipLibCheck": true,
-    "esModuleInterop": true,
+    "esModuleInterop": true
   },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "**/__tests__/**",
-    "**/*.test.ts",
-    "**/*.spec.ts"
-  ]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "**/__tests__/**", "**/*.test.ts", "**/*.spec.ts"]
 }

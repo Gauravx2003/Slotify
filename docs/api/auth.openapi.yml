@@ -1,0 +1,449 @@
+openapi: 3.0.3
+info:
+  title: Appointment Booking System - Authentication API
+  description: |
+    Authentication API using Better Auth with email/password and OTP verification.
+    
+    ## Features
+    - Email/Password signup with OTP verification
+    - Email verification via OTP
+    - Login with email/password
+    - Password reset with OTP
+    - Session management
+    
+    ## Authentication Flow
+    1. **Signup**: POST /sign-up/email → Receives OTP via email
+    2. **Verify Email**: POST /email-otp/verify-email → Verify with OTP
+    3. **Login**: POST /sign-in/email → Get session cookie
+    4. **Access Protected Routes**: Include session cookie in requests
+    
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@appointmentapp.com
+
+servers:
+  - url: http://localhost:3000/api/auth
+    description: Development server
+  - url: https://api.appointmentapp.com/auth
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User authentication operations
+  - name: Email OTP
+    description: Email OTP verification operations
+  - name: Session
+    description: Session management
+
+paths:
+  /sign-up/email:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      description: |
+        Create a new user account with email and password.
+        An OTP will be automatically sent to the email for verification.
+      operationId: signUp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - password
+                - role
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 100
+                  example: John Doe
+                email:
+                  type: string
+                  format: email
+                  example: john@example.com
+                password:
+                  type: string
+                  minLength: 8
+                  pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$'
+                  description: Must contain at least one uppercase, one lowercase, and one number
+                  example: Test@123456
+                role:
+                  type: string
+                  enum:
+                    - customer
+                    - organiser
+                  description: User role - Customer (books appointments) or Organiser (creates appointments)
+                  example: customer
+      responses:
+        '200':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /sign-in/email:
+    post:
+      tags:
+        - Authentication
+      summary: Login with email and password
+      description: Authenticate user and create a session
+      operationId: signIn
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: john@example.com
+                password:
+                  type: string
+                  example: Test@123456
+      responses:
+        '200':
+          description: Login successful
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: better-auth.session_token=abc123; Path=/; HttpOnly; Secure; SameSite=Lax
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+                  session:
+                    $ref: '#/components/schemas/Session'
+        '401':
+          description: Invalid credentials or email not verified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /sign-out:
+    post:
+      tags:
+        - Authentication
+      summary: Logout user
+      description: Destroy the current session
+      operationId: signOut
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+
+  /get-session:
+    get:
+      tags:
+        - Session
+      summary: Get current session
+      description: Retrieve the current authenticated user's session
+      operationId: getSession
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Session retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    oneOf:
+                      - $ref: '#/components/schemas/User'
+                      - type: 'null'
+                  session:
+                    oneOf:
+                      - $ref: '#/components/schemas/Session'
+                      - type: 'null'
+
+  /email-otp/send-verification-otp:
+    post:
+      tags:
+        - Email OTP
+      summary: Send OTP to email
+      description: |
+        Send a 6-digit OTP to the user's email.
+        Can be used for:
+        - Email verification after signup
+        - Password reset
+        - Sign in with OTP
+      operationId: sendVerificationOTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - type
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: john@example.com
+                type:
+                  type: string
+                  enum:
+                    - email-verification
+                    - forget-password
+                    - sign-in
+                  example: email-verification
+      responses:
+        '200':
+          description: OTP sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: OTP sent to your email
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /email-otp/verify-email:
+    post:
+      tags:
+        - Email OTP
+      summary: Verify email with OTP
+      description: Verify user's email address using the OTP sent to their email
+      operationId: verifyEmail
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - otp
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: john@example.com
+                otp:
+                  type: string
+                  pattern: '^\d{6}$'
+                  example: '123456'
+      responses:
+        '200':
+          description: Email verified successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+                  session:
+                    $ref: '#/components/schemas/Session'
+        '400':
+          description: Invalid or expired OTP
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /email-otp/reset-password:
+    post:
+      tags:
+        - Email OTP
+      summary: Reset password with OTP
+      description: Reset user's password using OTP sent to their email
+      operationId: resetPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - otp
+                - newPassword
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: john@example.com
+                otp:
+                  type: string
+                  pattern: '^\d{6}$'
+                  example: '123456'
+                newPassword:
+                  type: string
+                  minLength: 8
+                  pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$'
+                  example: NewTest@123456
+      responses:
+        '200':
+          description: Password reset successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Password reset successfully
+        '400':
+          description: Invalid OTP or weak password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: better-auth.session_token
+      description: Session cookie set by Better Auth
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          example: user_abc123xyz
+        name:
+          type: string
+          example: John Doe
+        email:
+          type: string
+          format: email
+          example: john@example.com
+        emailVerified:
+          type: boolean
+          example: true
+        role:
+          type: string
+          enum:
+            - customer
+            - admin
+            - organiser
+          example: customer
+        isActive:
+          type: boolean
+          example: true
+        phone:
+          type: string
+          nullable: true
+          example: '+1234567890'
+        image:
+          type: string
+          nullable: true
+          example: https://example.com/avatar.jpg
+        createdAt:
+          type: string
+          format: date-time
+          example: '2024-01-01T00:00:00.000Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2024-01-01T00:00:00.000Z'
+
+    Session:
+      type: object
+      properties:
+        id:
+          type: string
+          example: session_xyz789
+        userId:
+          type: string
+          example: user_abc123xyz
+        token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        expiresAt:
+          type: string
+          format: date-time
+          example: '2024-01-08T00:00:00.000Z'
+        ipAddress:
+          type: string
+          nullable: true
+          example: 192.168.1.1
+        userAgent:
+          type: string
+          nullable: true
+          example: Mozilla/5.0...
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            type:
+              type: string
+              example: VALIDATION_ERROR
+            message:
+              type: string
+              example: Invalid email or password
+            details:
+              type: object
+              nullable: true
+
+  responses:
+    BadRequest:
+      description: Bad request - validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              type: VALIDATION_ERROR
+              message: Validation failed
+              details:
+                - field: email
+                  message: Invalid email address

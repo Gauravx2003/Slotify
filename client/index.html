@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Slotify</title>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <style>
+      /* Hide the default Google Translate bar */
+      .goog-te-banner-frame.skiptranslate {
+        display: none !important;
+      }
+
+      body {
+        top: 0px !important;
+      }
+
+      /* Globally hide the Google Translate default widget UI but keep it rendered */
+      .goog-te-gadget-simple {
+        visibility: hidden !important;
+        position: absolute !important;
+        pointer-events: none !important;
+        opacity: 0 !important;
+        z-index: -1000 !important;
+      }
+
+      /* Ensure the wrapper that google creates inside our component is also hidden from interfering with layout */
+      .goog-te-gadget {
+        /* display: contents !important; - removing this as it might break google's script */
+        font-size: 0 !important;
+        line-height: 0 !important;
+      }
+
+      /* Menu styling */
+      .goog-te-menu-frame {
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15) !important;
+        border-radius: 16px !important;
+        border: 1px solid #faeada !important;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

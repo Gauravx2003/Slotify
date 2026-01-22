@@ -1,0 +1,314 @@
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap");
+@import "tailwindcss";
+
+@theme {
+    --color-spring-leaves-50: #f3f6f3;
+    --color-spring-leaves-100: #e2eae1;
+    --color-spring-leaves-200: #c5d5c6;
+    --color-spring-leaves-300: #9db89f;
+    --color-spring-leaves-400: #729576;
+    --color-spring-leaves-500: #577e5d;
+    --color-spring-leaves-600: #3e5d43;
+    --color-spring-leaves-700: #314b36;
+    --color-spring-leaves-800: #293c2d;
+    --color-spring-leaves-900: #223226;
+    --color-spring-leaves-950: #121c14;
+
+    --color-rust-50: #fdf6ef;
+    --color-rust-100: #faeada;
+    --color-rust-200: #f3d2b5;
+    --color-rust-300: #ebb486;
+    --color-rust-400: #e28b55;
+    --color-rust-500: #db6e34;
+    --color-rust-600: #cd5729;
+    --color-rust-700: #b04525;
+    --color-rust-800: #883724;
+    --color-rust-900: #6e2f20;
+    --color-rust-950: #3b150f;
+
+    --color-primary-50: #eef2ff;
+    --color-primary-100: #e0e7ff;
+    --color-primary-200: #c7d2fe;
+    --color-primary-300: #a5b4fc;
+    --color-primary-400: #818cf8;
+    --color-primary-500: #6366f1;
+    --color-primary-600: #4f46e5;
+    --color-primary-700: #4338ca;
+    --color-primary-800: #3730a3;
+    --color-primary-900: #312e81;
+
+    --color-surface-50: #f8fafc;
+    --color-surface-100: #f1f5f9;
+    --color-surface-200: #e2e8f0;
+    --color-surface-300: #cbd5e1;
+    --color-surface-400: #94a3b8;
+    --color-surface-500: #64748b;
+    --color-surface-600: #475569;
+    --color-surface-700: #334155;
+    --color-surface-800: #1e293b;
+    --color-surface-900: #0f172a;
+    --color-accent-yellow: #fde047;
+    --color-accent-yellow-hover: #facc15;
+}
+
+@layer utilities {
+    .glass {
+        @apply bg-white/40 backdrop-blur-md border border-white/40 shadow-xl;
+    }
+
+    .glass-card {
+        @apply bg-white/70 backdrop-blur-lg border border-white/50 shadow-2xl;
+    }
+
+    .rust-gradient {
+        @apply bg-gradient-to-br from-rust-400 to-rust-700;
+    }
+
+    .text-gradient {
+        @apply bg-clip-text text-transparent bg-gradient-to-r from-rust-600 to-rust-900;
+    }
+
+    .card-glow {
+        @apply hover:shadow-xl transition-all duration-500;
+    }
+
+    .blob-shape {
+        border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+    }
+
+    .animate-float {
+        animation: float 6s ease-in-out infinite;
+    }
+
+    @keyframes float {
+
+        0%,
+        100% {
+            transform: translateY(0);
+        }
+
+        50% {
+            transform: translateY(-20px);
+        }
+    }
+}
+
+:root {
+    font-family: "Outfit", system-ui, -apple-system, sans-serif;
+    line-height: 1.5;
+    font-weight: 400;
+    color-scheme: light dark;
+}
+
+body {
+    min-height: 100vh;
+    @apply bg-surface-50 text-surface-900 selection:bg-primary-500/30 selection:text-primary-900;
+}
+
+/* Smooth Scrolling */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    @apply bg-surface-300 hover:bg-surface-400 rounded-full transition-colors;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+}
+
+/* React Big Calendar Custom Styles */
+.calendar-container .rbc-calendar {
+    font-family: 'Outfit', system-ui, sans-serif;
+}
+
+.calendar-container .rbc-header {
+    padding: 12px 8px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #475569;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.calendar-container .rbc-month-view {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.calendar-container .rbc-month-row {
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.calendar-container .rbc-day-bg {
+    border-left: 1px solid #e2e8f0;
+}
+
+.calendar-container .rbc-day-bg:first-child {
+    border-left: none;
+}
+
+.calendar-container .rbc-today {
+    background-color: #eef2ff;
+}
+
+.calendar-container .rbc-off-range-bg {
+    background-color: #f1f5f9;
+}
+
+.calendar-container .rbc-date-cell {
+    padding: 4px 8px;
+    font-size: 0.875rem;
+    color: #475569;
+}
+
+.calendar-container .rbc-date-cell.rbc-now {
+    font-weight: 700;
+    color: #4f46e5;
+}
+
+.calendar-container .rbc-event {
+    border-radius: 6px;
+    padding: 2px 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.calendar-container .rbc-event:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.calendar-container .rbc-event-content {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.calendar-container .rbc-show-more {
+    color: #4f46e5;
+    font-weight: 600;
+    font-size: 0.75rem;
+    background: transparent;
+    padding: 2px 6px;
+    cursor: pointer;
+}
+
+.calendar-container .rbc-show-more:hover {
+    color: #4338ca;
+}
+
+/* Week and Day view */
+.calendar-container .rbc-time-view {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.calendar-container .rbc-time-header {
+    background: #f8fafc;
+}
+
+.calendar-container .rbc-time-content {
+    border-top: 1px solid #e2e8f0;
+}
+
+.calendar-container .rbc-time-gutter {
+    background: #f8fafc;
+}
+
+.calendar-container .rbc-timeslot-group {
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.calendar-container .rbc-time-slot {
+    color: #64748b;
+    font-size: 0.75rem;
+}
+
+.calendar-container .rbc-current-time-indicator {
+    background-color: #ef4444;
+    height: 2px;
+}
+
+.calendar-container .rbc-current-time-indicator::before {
+    content: '';
+    position: absolute;
+    left: -6px;
+    top: -4px;
+    width: 10px;
+    height: 10px;
+    background-color: #ef4444;
+    border-radius: 50%;
+}
+
+/* Agenda view */
+.calendar-container .rbc-agenda-view {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.calendar-container .rbc-agenda-table {
+    border: none;
+}
+
+.calendar-container .rbc-agenda-date-cell,
+.calendar-container .rbc-agenda-time-cell {
+    padding: 12px;
+    font-size: 0.875rem;
+    color: #475569;
+    background: #f8fafc;
+    white-space: nowrap;
+}
+
+.calendar-container .rbc-agenda-event-cell {
+    padding: 12px;
+    font-size: 0.875rem;
+}
+
+/* Overlay popup */
+.calendar-container .rbc-overlay {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    padding: 12px;
+    z-index: 100;
+}
+
+.calendar-container .rbc-overlay-header {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #1e293b;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #e2e8f0;
+}

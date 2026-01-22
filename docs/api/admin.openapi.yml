@@ -1,0 +1,717 @@
+openapi: 3.0.3
+info:
+  title: Appointment Booking System - Admin Dashboard API
+  description: |
+    Admin Dashboard API for system-level monitoring and control.
+    
+    ## Features
+    - Dashboard Statistics - Total users, appointments, and bookings overview
+    - User Management - View, activate/deactivate, and manage user roles
+    - Analytics - Peak booking hours and provider utilization
+    
+    ## Access Control
+    - All endpoints require authentication via Bearer token
+    - Only users with admin role can access these endpoints
+    - Admin cannot change their own role (security measure)
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@appointmentapp.com
+
+servers:
+  - url: http://localhost:3000/api/admin
+    description: Development server
+  - url: https://api.appointmentapp.com/admin
+    description: Production server
+
+tags:
+  - name: Dashboard
+    description: Overall system statistics and monitoring
+  - name: User Statistics
+    description: Detailed user-related statistics
+  - name: Appointment Statistics
+    description: Appointment-related statistics
+  - name: Booking Statistics
+    description: Booking-related statistics
+  - name: User Management
+    description: User CRUD and role management operations
+  - name: Analytics
+    description: Advanced analytics and reports
+
+security:
+  - BearerAuth: []
+
+paths:
+  /dashboard:
+    get:
+      tags:
+        - Dashboard
+      summary: Get overall dashboard statistics
+      description: Returns comprehensive system statistics including total users, appointments, and bookings.
+      operationId: getDashboardStats
+      responses:
+        '200':
+          description: Dashboard statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /stats/users:
+    get:
+      tags:
+        - User Statistics
+      summary: Get detailed user statistics
+      description: Returns user statistics including breakdown by role, active/inactive, and verified/unverified counts.
+      operationId: getUserStats
+      responses:
+        '200':
+          description: User statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserStatsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /stats/appointments:
+    get:
+      tags:
+        - Appointment Statistics
+      summary: Get appointment statistics
+      description: Returns appointment type statistics including published/unpublished counts and top organisers.
+      operationId: getAppointmentStats
+      responses:
+        '200':
+          description: Appointment statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentStatsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /stats/bookings:
+    get:
+      tags:
+        - Booking Statistics
+      summary: Get booking statistics
+      description: Returns booking statistics including breakdown by status, today's bookings, and upcoming bookings.
+      operationId: getBookingStats
+      responses:
+        '200':
+          description: Booking statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingStatsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /users:
+    get:
+      tags:
+        - User Management
+      summary: List all users with pagination and filtering
+      description: Returns a paginated list of users with optional filtering by role, active status, and search term.
+      operationId: getUsers
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-based)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page (max 100)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: role
+          in: query
+          description: Filter by user role
+          required: false
+          schema:
+            type: string
+            enum:
+              - customer
+              - organiser
+              - admin
+        - name: isActive
+          in: query
+          description: Filter by active status
+          required: false
+          schema:
+            type: boolean
+        - name: search
+          in: query
+          description: Search term to filter by name or email
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Users retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /users/{id}:
+    get:
+      tags:
+        - User Management
+      summary: Get a single user by ID
+      description: Returns detailed information about a specific user.
+      operationId: getUserById
+      parameters:
+        - name: id
+          in: path
+          description: User ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /users/{id}/status:
+    patch:
+      tags:
+        - User Management
+      summary: Activate or deactivate a user account
+      description: Toggles the active status of a user account. Deactivated users cannot log in.
+      operationId: updateUserStatus
+      parameters:
+        - name: id
+          in: path
+          description: User ID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateStatusRequest'
+      responses:
+        '200':
+          description: User status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /users/{id}/role:
+    patch:
+      tags:
+        - User Management
+      summary: Update user role
+      description: Changes the role of a user account. Admin cannot change their own role.
+      operationId: updateUserRole
+      parameters:
+        - name: id
+          in: path
+          description: User ID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRoleRequest'
+      responses:
+        '200':
+          description: User role updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /analytics/peak-hours:
+    get:
+      tags:
+        - Analytics
+      summary: Get peak booking hours analytics
+      description: Returns booking counts grouped by hour of day based on bookings from the last 30 days.
+      operationId: getPeakHours
+      responses:
+        '200':
+          description: Peak hours analytics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PeakHoursResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Bearer token authentication. Get token by signing in at /api/auth/sign-in/email.
+
+  schemas:
+    DashboardStats:
+      type: object
+      properties:
+        totalUsers:
+          type: integer
+          example: 150
+        totalCustomers:
+          type: integer
+          example: 120
+        totalOrganisers:
+          type: integer
+          example: 25
+        totalAdmins:
+          type: integer
+          example: 5
+        totalAppointments:
+          type: integer
+          example: 45
+        totalBookings:
+          type: integer
+          example: 320
+        activeBookings:
+          type: integer
+          example: 50
+        completedBookings:
+          type: integer
+          example: 250
+        cancelledBookings:
+          type: integer
+          example: 15
+        pendingBookings:
+          type: integer
+          example: 5
+
+    DashboardResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Dashboard statistics retrieved successfully
+        data:
+          $ref: '#/components/schemas/DashboardStats'
+
+    UserStats:
+      type: object
+      properties:
+        total:
+          type: integer
+          example: 150
+        byRole:
+          type: object
+          properties:
+            customer:
+              type: integer
+              example: 120
+            organiser:
+              type: integer
+              example: 25
+            admin:
+              type: integer
+              example: 5
+        activeUsers:
+          type: integer
+          example: 145
+        inactiveUsers:
+          type: integer
+          example: 5
+        verifiedUsers:
+          type: integer
+          example: 140
+        unverifiedUsers:
+          type: integer
+          example: 10
+
+    UserStatsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: User statistics retrieved successfully
+        data:
+          $ref: '#/components/schemas/UserStats'
+
+    AppointmentStats:
+      type: object
+      properties:
+        total:
+          type: integer
+          example: 45
+        published:
+          type: integer
+          example: 30
+        unpublished:
+          type: integer
+          example: 15
+        byOwner:
+          type: array
+          items:
+            type: object
+            properties:
+              ownerId:
+                type: string
+                example: abc123
+              ownerName:
+                type: string
+                example: Dr. Smith
+              count:
+                type: integer
+                example: 10
+
+    AppointmentStatsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Appointment statistics retrieved successfully
+        data:
+          $ref: '#/components/schemas/AppointmentStats'
+
+    BookingStats:
+      type: object
+      properties:
+        total:
+          type: integer
+          example: 320
+        byStatus:
+          type: object
+          properties:
+            request:
+              type: integer
+              example: 5
+            booked:
+              type: integer
+              example: 45
+            cancelled:
+              type: integer
+              example: 15
+            completed:
+              type: integer
+              example: 255
+        todayBookings:
+          type: integer
+          example: 12
+        upcomingBookings:
+          type: integer
+          example: 50
+
+    BookingStatsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Booking statistics retrieved successfully
+        data:
+          $ref: '#/components/schemas/BookingStats'
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          example: abc123def456
+        name:
+          type: string
+          example: John Doe
+        email:
+          type: string
+          format: email
+          example: john@example.com
+        emailVerified:
+          type: boolean
+          example: true
+        image:
+          type: string
+          nullable: true
+          example: null
+        role:
+          type: string
+          enum:
+            - customer
+            - organiser
+            - admin
+          example: customer
+        isActive:
+          type: boolean
+          example: true
+        phone:
+          type: string
+          nullable: true
+          example: "+1234567890"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-01-15T10:00:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2025-01-15T10:00:00.000Z"
+
+    UserSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          example: abc123def456
+        name:
+          type: string
+          example: John Doe
+        email:
+          type: string
+          format: email
+          example: john@example.com
+        role:
+          type: string
+          enum:
+            - customer
+            - organiser
+            - admin
+          example: customer
+        isActive:
+          type: boolean
+          example: true
+        emailVerified:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-01-15T10:00:00.000Z"
+        appointmentsCount:
+          type: integer
+          example: 5
+        bookingsCount:
+          type: integer
+          example: 12
+
+    UserResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: User retrieved successfully
+        data:
+          $ref: '#/components/schemas/User'
+
+    UserListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Users retrieved successfully
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserSummary'
+        meta:
+          type: object
+          properties:
+            timestamp:
+              type: string
+              format: date-time
+              example: "2025-12-20T12:00:00.000Z"
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 150
+        totalPages:
+          type: integer
+          example: 8
+        hasNext:
+          type: boolean
+          example: true
+        hasPrev:
+          type: boolean
+          example: false
+
+    PeakHourData:
+      type: object
+      properties:
+        hour:
+          type: integer
+          minimum: 0
+          maximum: 23
+          example: 10
+        bookingsCount:
+          type: integer
+          example: 78
+
+    PeakHoursResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Peak hours analytics retrieved successfully
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PeakHourData'
+
+    UpdateStatusRequest:
+      type: object
+      required:
+        - isActive
+      properties:
+        isActive:
+          type: boolean
+          description: New active status
+          example: false
+
+    UpdateRoleRequest:
+      type: object
+      required:
+        - role
+      properties:
+        role:
+          type: string
+          enum:
+            - customer
+            - organiser
+            - admin
+          description: New role for the user
+          example: organiser
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            type:
+              type: string
+              example: AUTHORIZATION_ERROR
+            message:
+              type: string
+              example: Admin access required
+            statusCode:
+              type: integer
+              example: 403
+            details:
+              type: array
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
+
+  responses:
+    BadRequest:
+      description: Bad Request - Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Unauthorized:
+      description: Unauthorized - Missing or invalid authentication token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Forbidden:
+      description: Forbidden - User does not have admin role
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Not Found - Resource does not exist
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

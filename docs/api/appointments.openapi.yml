@@ -1,0 +1,965 @@
+openapi: 3.0.3
+info:
+  title: Appointment Booking System - Appointments API
+  description: |
+    Appointment Types and Schedules API for managing bookable appointments.
+    
+    ## Features
+    - Create and manage appointment types
+    - Configure schedules (working hours)
+    - Publish/unpublish appointments
+    - Calculate availability slots
+    
+    ## Authentication
+    All endpoints require authentication via session cookie.
+    Use the Auth API to sign in and obtain a session.
+    
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@appointmentapp.com
+
+servers:
+  - url: http://localhost:3000/api
+    description: Development server
+  - url: https://api.appointmentapp.com/api
+    description: Production server
+
+tags:
+  - name: Appointment Types
+    description: Manage appointment type configurations
+  - name: Schedules
+    description: Manage working hours and availability schedules
+  - name: Availability
+    description: Get available time slots
+
+paths:
+  /appointments:
+    post:
+      tags:
+        - Appointment Types
+      summary: Create a new appointment type
+      description: |
+        Create a new appointment type configuration.
+        The appointment will be created in unpublished state.
+        Add schedules and then publish to make it available for booking.
+      operationId: createAppointmentType
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAppointmentTypeRequest'
+            example:
+              title: "Dental Checkup"
+              description: "Regular dental examination and cleaning"
+              durationMinutes: 30
+              location: "123 Main St, Clinic Room 5"
+              assignmentType: "automatic"
+              isPaid: true
+              bookingFeeCents: 50000
+              manageCapacity: true
+              maxCapacity: 5
+              manualConfirmation: false
+              cancellationHours: 24
+              slotCreationMode: "automatic"
+              introMessage: "Welcome to our dental clinic!"
+              confirmationMessage: "Your appointment is confirmed."
+      responses:
+        '201':
+          description: Appointment type created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentTypeResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    get:
+      tags:
+        - Appointment Types
+      summary: List appointment types
+      description: Get paginated list of appointment types owned by the authenticated user
+      operationId: listAppointmentTypes
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-indexed)
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: isPublished
+          in: query
+          description: Filter by publish status
+          schema:
+            type: string
+            enum:
+              - "true"
+              - "false"
+      responses:
+        '200':
+          description: List of appointment types
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentTypeListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /appointments/{id}:
+    get:
+      tags:
+        - Appointment Types
+      summary: Get appointment type by ID
+      description: Retrieve a single appointment type by its ID
+      operationId: getAppointmentTypeById
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AppointmentTypeId'
+      responses:
+        '200':
+          description: Appointment type details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentTypeResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags:
+        - Appointment Types
+      summary: Update appointment type
+      description: Update an existing appointment type. Only the owner can update.
+      operationId: updateAppointmentType
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AppointmentTypeId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAppointmentTypeRequest'
+            example:
+              title: "Premium Dental Checkup"
+              durationMinutes: 45
+              maxCapacity: 3
+      responses:
+        '200':
+          description: Appointment type updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentTypeResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /appointments/{id}/publish:
+    post:
+      tags:
+        - Appointment Types
+      summary: Publish appointment type
+      description: |
+        Publish an appointment type to make it available for booking.
+        Requires at least one schedule to be configured.
+      operationId: publishAppointmentType
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AppointmentTypeId'
+      responses:
+        '200':
+          description: Appointment type published successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentTypeResponse'
+        '400':
+          description: Cannot publish - no schedules configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /appointments/{id}/unpublish:
+    post:
+      tags:
+        - Appointment Types
+      summary: Unpublish appointment type
+      description: Unpublish an appointment type to hide it from booking
+      operationId: unpublishAppointmentType
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AppointmentTypeId'
+      responses:
+        '200':
+          description: Appointment type unpublished successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentTypeResponse'
+        '400':
+          description: Already unpublished
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /appointments/{id}/availability:
+    get:
+      tags:
+        - Availability
+      summary: Get available time slots
+      description: |
+        Get available time slots for a specific date.
+        
+        **Rules:**
+        - Unpublished appointments return empty slots
+        - Past dates return empty slots
+        - Slots are generated based on schedules and duration
+        - Capacity is calculated from existing bookings
+      operationId: getAvailability
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AppointmentTypeId'
+        - name: date
+          in: query
+          required: true
+          description: Date to check availability (YYYY-MM-DD format)
+          schema:
+            type: string
+            format: date
+            pattern: '^\d{4}-\d{2}-\d{2}$'
+            example: "2024-12-25"
+      responses:
+        '200':
+          description: Available time slots
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AvailabilityResponse'
+        '400':
+          description: Invalid date format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /appointments/{id}/schedules:
+    get:
+      tags:
+        - Schedules
+      summary: Get schedules for appointment type
+      description: Get all schedules (working hours) configured for an appointment type
+      operationId: getSchedulesByAppointmentType
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AppointmentTypeId'
+      responses:
+        '200':
+          description: List of schedules
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScheduleListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /schedules:
+    post:
+      tags:
+        - Schedules
+      summary: Create a new schedule
+      description: |
+        Add working hours for an appointment type.
+        Schedules define when appointments can be booked.
+        
+        **Validation:**
+        - End time must be after start time
+        - Schedules cannot overlap on the same day
+      operationId: createSchedule
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateScheduleRequest'
+            example:
+              appointmentTypeId: "f28ee170-8a6d-4d31-8a30-bf749add1c5d"
+              dayOfWeek: "Monday"
+              fromTime: "09:00"
+              toTime: "17:00"
+      responses:
+        '201':
+          description: Schedule created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScheduleResponse'
+        '400':
+          description: Validation error or overlapping schedule
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Appointment type not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /schedules/{id}:
+    patch:
+      tags:
+        - Schedules
+      summary: Update a schedule
+      description: Update an existing schedule's day or time range
+      operationId: updateSchedule
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ScheduleId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateScheduleRequest'
+            example:
+              fromTime: "10:00"
+              toTime: "18:00"
+      responses:
+        '200':
+          description: Schedule updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScheduleResponse'
+        '400':
+          description: Validation error or overlapping schedule
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - Schedules
+      summary: Delete a schedule
+      description: Remove a schedule from an appointment type
+      operationId: deleteSchedule
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ScheduleId'
+      responses:
+        '200':
+          description: Schedule deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Schedule deleted successfully"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: better-auth.session_token
+      description: Session cookie from Better Auth login
+
+  parameters:
+    AppointmentTypeId:
+      name: id
+      in: path
+      required: true
+      description: Appointment type ID
+      schema:
+        type: string
+        example: "f28ee170-8a6d-4d31-8a30-bf749add1c5d"
+
+    ScheduleId:
+      name: id
+      in: path
+      required: true
+      description: Schedule ID
+      schema:
+        type: string
+        example: "55ef16b2-8476-499f-8de0-4467f2d44e11"
+
+  schemas:
+    # Appointment Type Schemas
+    CreateAppointmentTypeRequest:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Appointment type name
+          example: "Dental Checkup"
+        description:
+          type: string
+          maxLength: 2000
+          nullable: true
+          description: Detailed description
+          example: "Regular dental examination and cleaning"
+        durationMinutes:
+          type: integer
+          minimum: 5
+          maximum: 480
+          default: 30
+          description: Appointment duration in minutes
+          example: 30
+        location:
+          type: string
+          maxLength: 500
+          nullable: true
+          description: Physical location (null for online)
+          example: "123 Main St, Clinic Room 5"
+        assignmentType:
+          type: string
+          enum:
+            - automatic
+            - by_visitor
+          default: "automatic"
+          description: How resources are assigned
+          example: "automatic"
+        isPaid:
+          type: boolean
+          default: false
+          description: Whether advance payment is required
+          example: true
+        bookingFeeCents:
+          type: integer
+          minimum: 0
+          nullable: true
+          description: Booking fee in cents (e.g., 50000 = Rs 500)
+          example: 50000
+        manageCapacity:
+          type: boolean
+          default: false
+          description: Enable capacity management
+          example: true
+        maxCapacity:
+          type: integer
+          minimum: 1
+          default: 1
+          description: Maximum bookings per slot
+          example: 5
+        manualConfirmation:
+          type: boolean
+          default: false
+          description: Require manual booking approval
+          example: false
+        cancellationHours:
+          type: integer
+          minimum: 0
+          default: 1
+          description: Hours before appointment for cancellation
+          example: 24
+        slotCreationMode:
+          type: string
+          enum:
+            - automatic
+            - manual
+          default: "automatic"
+          description: How slots are generated
+          example: "automatic"
+        introMessage:
+          type: string
+          maxLength: 2000
+          nullable: true
+          description: Message shown on booking page
+          example: "Welcome to our dental clinic!"
+        confirmationMessage:
+          type: string
+          maxLength: 2000
+          nullable: true
+          description: Message shown after booking
+          example: "Your appointment is confirmed."
+
+    UpdateAppointmentTypeRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 2000
+          nullable: true
+        durationMinutes:
+          type: integer
+          minimum: 5
+          maximum: 480
+        location:
+          type: string
+          maxLength: 500
+          nullable: true
+        assignmentType:
+          type: string
+          enum:
+            - automatic
+            - by_visitor
+        isPaid:
+          type: boolean
+        bookingFeeCents:
+          type: integer
+          minimum: 0
+          nullable: true
+        manageCapacity:
+          type: boolean
+        maxCapacity:
+          type: integer
+          minimum: 1
+        manualConfirmation:
+          type: boolean
+        cancellationHours:
+          type: integer
+          minimum: 0
+        slotCreationMode:
+          type: string
+          enum:
+            - automatic
+            - manual
+        introMessage:
+          type: string
+          maxLength: 2000
+          nullable: true
+        confirmationMessage:
+          type: string
+          maxLength: 2000
+          nullable: true
+
+    AppointmentType:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "f28ee170-8a6d-4d31-8a30-bf749add1c5d"
+        ownerId:
+          type: string
+          example: "t5GjXvGcGuqeGCNtwdJpif9Bl87YzXho"
+        title:
+          type: string
+          example: "Dental Checkup"
+        description:
+          type: string
+          nullable: true
+          example: "Regular dental examination"
+        durationMinutes:
+          type: integer
+          example: 30
+        location:
+          type: string
+          nullable: true
+          example: "123 Main St"
+        assignmentType:
+          type: string
+          enum:
+            - automatic
+            - by_visitor
+          example: "automatic"
+        isPublished:
+          type: boolean
+          example: false
+        isPaid:
+          type: boolean
+          example: false
+        bookingFeeCents:
+          type: integer
+          nullable: true
+          example: 50000
+        manageCapacity:
+          type: boolean
+          example: true
+        maxCapacity:
+          type: integer
+          example: 5
+        manualConfirmation:
+          type: boolean
+          example: false
+        cancellationHours:
+          type: integer
+          example: 24
+        slotCreationMode:
+          type: string
+          example: "automatic"
+        shareToken:
+          type: string
+          example: "d1MA1dQOLrkroWSq"
+        introMessage:
+          type: string
+          nullable: true
+        confirmationMessage:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-12-20T10:53:36.974Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-12-20T10:56:47.936Z"
+
+    AppointmentTypeResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Appointment type created successfully"
+        data:
+          $ref: '#/components/schemas/AppointmentType'
+
+    AppointmentTypeListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AppointmentType'
+        meta:
+          type: object
+          properties:
+            timestamp:
+              type: string
+              format: date-time
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+
+    # Schedule Schemas
+    CreateScheduleRequest:
+      type: object
+      required:
+        - appointmentTypeId
+        - dayOfWeek
+        - fromTime
+        - toTime
+      properties:
+        appointmentTypeId:
+          type: string
+          description: ID of the appointment type
+          example: "f28ee170-8a6d-4d31-8a30-bf749add1c5d"
+        dayOfWeek:
+          type: string
+          enum:
+            - Monday
+            - Tuesday
+            - Wednesday
+            - Thursday
+            - Friday
+            - Saturday
+            - Sunday
+          description: Day of the week
+          example: "Monday"
+        fromTime:
+          type: string
+          pattern: '^([01]\d|2[0-3]):([0-5]\d)$'
+          description: Start time in HH:MM format (24-hour)
+          example: "09:00"
+        toTime:
+          type: string
+          pattern: '^([01]\d|2[0-3]):([0-5]\d)$'
+          description: End time in HH:MM format (24-hour)
+          example: "17:00"
+
+    UpdateScheduleRequest:
+      type: object
+      properties:
+        dayOfWeek:
+          type: string
+          enum:
+            - Monday
+            - Tuesday
+            - Wednesday
+            - Thursday
+            - Friday
+            - Saturday
+            - Sunday
+        fromTime:
+          type: string
+          pattern: '^([01]\d|2[0-3]):([0-5]\d)$'
+        toTime:
+          type: string
+          pattern: '^([01]\d|2[0-3]):([0-5]\d)$'
+
+    Schedule:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "55ef16b2-8476-499f-8de0-4467f2d44e11"
+        appointmentTypeId:
+          type: string
+          example: "f28ee170-8a6d-4d31-8a30-bf749add1c5d"
+        dayOfWeek:
+          type: string
+          example: "Monday"
+        fromTime:
+          type: string
+          example: "09:00"
+        toTime:
+          type: string
+          example: "17:00"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ScheduleResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Schedule created successfully"
+        data:
+          $ref: '#/components/schemas/Schedule'
+
+    ScheduleListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Schedules retrieved successfully"
+        data:
+          type: object
+          properties:
+            appointmentTypeId:
+              type: string
+            schedules:
+              type: array
+              items:
+                $ref: '#/components/schemas/Schedule'
+            count:
+              type: integer
+              example: 3
+
+    # Availability Schemas
+    AvailabilitySlot:
+      type: object
+      properties:
+        startTime:
+          type: string
+          format: date-time
+          description: Slot start time in ISO format
+          example: "2024-12-25T09:00:00.000Z"
+        endTime:
+          type: string
+          format: date-time
+          description: Slot end time in ISO format
+          example: "2024-12-25T09:30:00.000Z"
+        available:
+          type: boolean
+          description: Whether the slot is available for booking
+          example: true
+        remainingCapacity:
+          type: integer
+          description: Number of spots remaining
+          example: 5
+
+    AvailabilityResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Availability retrieved successfully"
+        data:
+          type: object
+          properties:
+            appointmentTypeId:
+              type: string
+              example: "f28ee170-8a6d-4d31-8a30-bf749add1c5d"
+            date:
+              type: string
+              format: date
+              example: "2024-12-25"
+            slots:
+              type: array
+              items:
+                $ref: '#/components/schemas/AvailabilitySlot'
+            totalSlots:
+              type: integer
+              description: Total number of slots for the day
+              example: 16
+            availableSlots:
+              type: integer
+              description: Number of slots with availability
+              example: 14
+
+    # Common Schemas
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 50
+        totalPages:
+          type: integer
+          example: 3
+        hasNext:
+          type: boolean
+          example: true
+        hasPrev:
+          type: boolean
+          example: false
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            type:
+              type: string
+              example: "VALIDATION_ERROR"
+            message:
+              type: string
+              example: "Validation failed"
+            statusCode:
+              type: integer
+              example: 400
+            details:
+              type: array
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
+
+  responses:
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error:
+              type: "VALIDATION_ERROR"
+              message: "Validation failed"
+              statusCode: 400
+              details:
+                - field: "title"
+                  message: "Title is required"
+
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error:
+              type: "AUTHENTICATION_ERROR"
+              message: "User not authenticated"
+              statusCode: 401
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error:
+              type: "NOT_FOUND"
+              message: "Appointment type not found"
+              statusCode: 404
+

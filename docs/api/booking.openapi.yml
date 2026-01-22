@@ -1,0 +1,265 @@
+openapi: 3.0.3
+info:
+  title: Appointment Booking System - Booking API
+  description: |
+    Booking API for managing appointment bookings, cancellations, and resource assignments.
+
+    ## Features
+    - Create bookings (auto-assigned or manual pending)
+    - View booking details
+    - Cancel bookings
+    - Assign resources to pending bookings
+    - Confirm pending bookings
+
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3000/api
+    description: Development server
+
+tags:
+  - name: Bookings
+    description: Booking management operations
+
+paths:
+  /bookings:
+    post:
+      tags:
+        - Bookings
+      summary: Create a new booking
+      description: |
+        Create a new booking. 
+        - If appointment type is 'automatic', a resource is assigned immediately.
+        - If 'manual' or no resource available (but capacity exists), booking is created as PENDING.
+      operationId: createBooking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBookingDTO'
+      responses:
+        '201':
+          description: Booking created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: Appointment type not found
+        '409':
+          description: Conflict (e.g. capacity reached)
+
+  /bookings/{id}:
+    get:
+      tags:
+        - Bookings
+      summary: Get booking by ID
+      description: Retrieve full details of a specific booking.
+      operationId: getBooking
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Booking ID
+      responses:
+        '200':
+          description: Booking details retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '404':
+          description: Booking not found
+
+  /bookings/{id}/cancel:
+    post:
+      tags:
+        - Bookings
+      summary: Cancel a booking
+      description: Cancel an existing booking. Logic prevents cancelling already cancelled bookings.
+      operationId: cancelBooking
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Booking ID
+      responses:
+        '200':
+          description: Booking cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '404':
+          description: Booking not found
+        '400':
+          description: Booking already cancelled
+
+  /bookings/{id}/assign-resource:
+    patch:
+      tags:
+        - Bookings
+      summary: Assign resource to booking
+      description: Assign a specific resource to a PENDING booking and confirm it. Checks capacity and overlap.
+      operationId: assignResource
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Booking ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - resourceId
+              properties:
+                resourceId:
+                  type: string
+                  description: ID of the resource to assign
+      responses:
+        '200':
+          description: Resource assigned and booking confirmed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '400':
+          description: Invalid request (e.g. booking not pending)
+        '409':
+          description: Resource busy or capacity reached
+
+  /bookings/{id}/confirm:
+    patch:
+      tags:
+        - Bookings
+      summary: Confirm a booking
+      description: Manually confirm a PENDING booking without changing assignment (or if standard flow requires validation).
+      operationId: confirmBooking
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Booking ID
+      responses:
+        '200':
+          description: Booking confirmed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '400':
+          description: Booking not pending
+
+components:
+  schemas:
+    Booking:
+      type: object
+      properties:
+        id:
+          type: string
+          example: booking_123xyz
+        appointmentTypeId:
+          type: string
+        resourceId:
+          type: string
+          nullable: true
+        customerName:
+          type: string
+        customerEmail:
+          type: string
+        customerPhone:
+          type: string
+          nullable: true
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [request, booked, cancelled, completed, pending, confirmed]
+        numPeople:
+          type: integer
+        subject:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateBookingDTO:
+      type: object
+      required:
+        - appointmentTypeId
+        - customerName
+        - customerEmail
+        - startTime
+        - endTime
+      properties:
+        appointmentTypeId:
+          type: string
+          description: ID of the appointment type
+        customerName:
+          type: string
+        customerEmail:
+          type: string
+          format: email
+        customerPhone:
+          type: string
+          nullable: true
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        numPeople:
+          type: integer
+          default: 1
+        subject:
+          type: string
+          nullable: true
+        answers:
+          type: array
+          items:
+            type: object
+            required:
+              - questionId
+              - answerText
+            properties:
+              questionId:
+                type: string
+              answerText:
+                type: string
+
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

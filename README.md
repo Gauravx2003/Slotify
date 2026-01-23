@@ -2,6 +2,12 @@
 
 A comprehensive appointment booking and management platform featuring a customer portal, organizer dashboard, and administrative interface.
 
+## 🎬 Demo Video
+
+> [!IMPORTANT] > **View Project Demo:** [https://drive.google.com/file/d/16K3fWaO_qjuD81M6-OXFMUwJAISGcXYY/view?usp=sharing]
+
+---
+
 
 ## 🚀 Features
 

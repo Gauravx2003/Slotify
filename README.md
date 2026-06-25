@@ -1,4 +1,4 @@
-# Appointment Management System (Odoo Hackathon Project)
+# Appointment Management System (Odoo Hackathon Finalist Project)
 
 A comprehensive appointment booking and management platform featuring a customer portal, organizer dashboard, and administrative interface.
 
